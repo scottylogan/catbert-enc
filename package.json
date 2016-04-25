@@ -1,6 +1,6 @@
 {
   "name": "enc",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Puppet ENC",
   "author": {
     "name": "Scotty Logan",
@@ -11,8 +11,8 @@
   "repository": "scottylogan/catbert-enc",
   "main": "lib/index.js",
   "binary": {
-    "enc": "./enc",
-    "autosign": "./enc"
+    "enc": "./bin/enc",
+    "autosign": "./bin/enc"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
