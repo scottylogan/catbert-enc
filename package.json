@@ -1,8 +1,15 @@
 {
   "name": "enc",
-  "version": "1.0.0",
+  "version": "0.1.1",
   "description": "Puppet ENC",
-  "main": "index.js",
+  "author": {
+    "name": "Scotty Logan",
+    "email": "scotty@catbert.net",
+    "url": "http://scottylogan.com"
+  },
+  "license": "MIT",
+  "repository": "scottylogan/catbert-enc",
+  "main": "lib/index.js",
   "binary": {
     "enc": "./enc",
     "autosign": "./enc"
@@ -13,10 +20,12 @@
   "keywords": [
     "puppet"
   ],
-  "author": "Scotty Logan <scotty@catbert.net>",
-  "license": "MIT",
   "dependencies": {
     "aws-sdk": "^2.3.5",
     "js-yaml": "^3.6.0"
-  }
+  },
+  "engines": {
+    "node": ">=4.3.0"
+  },
+  "preferGlobal": "true"
 }

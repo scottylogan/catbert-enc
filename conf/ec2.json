@@ -1,5 +1,7 @@
 {
   "handler": "ec2",
+  "profile": "catbert",
+  "domain": "catbert.net",
 
   "default": [],
 
