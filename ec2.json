@@ -1,4 +1,6 @@
 {
+  "handler": "ec2",
+
   "default": [],
 
   "classTag": "classes",
