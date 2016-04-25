@@ -1,0 +1,22 @@
+{
+  "name": "enc",
+  "version": "1.0.0",
+  "description": "Puppet ENC",
+  "main": "index.js",
+  "binary": {
+    "enc": "./enc",
+    "autosign": "./enc"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "puppet"
+  ],
+  "author": "Scotty Logan <scotty@catbert.net>",
+  "license": "MIT",
+  "dependencies": {
+    "aws-sdk": "^2.3.5",
+    "js-yaml": "^3.6.0"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "default": [],
+
+  "classTag": "classes",
+
+  "securityGroups": {
+    "webserver": [
+      "webserver"
+    ]
+  },
+
+  "tags": { 
+    "Name": {
+      "muppet1": [
+        "webserver"
+      ],
+      "muppet2": [
+        "wordpress"
+      ]
+    }
+  },
+
+  "instanceTypes": {
+    "t2.micro": [],
+    "m4.large": []
+  }
+
+}

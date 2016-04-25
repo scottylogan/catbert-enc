@@ -1,0 +1,9 @@
+{
+  "default":            { "environment": "production", "classes": [ "muppet" ] },
+  "white.catbert.net":  { "classes": [ "muppet_pi" ] },
+  "black.catbert.net":  { "classes": [ "muppet_pi" ] },
+  "pink.catbert.net":   { "classes": [ "muppet_pi" ] },
+  "red.catbert.net":    { "classes": [ "muppet_pi" ] },
+  "orange.catbert.net": { "classes": [ "muppet_pi" ] },
+  "yellow.catbert.net": { "classes": [ "muppet_pi" ], "environment": "development" }
+}

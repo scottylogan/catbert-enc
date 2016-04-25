@@ -1,0 +1,107 @@
+#! /usr/bin/env node
+
+var ec2Classifier   = require('./lib/ec2'),
+    localClassifier = require('./lib/local'),
+    yaml            = require('js-yaml'),
+    fs              = require('fs'),
+    progName        = process.argv[1].replace(/^.*\//, ''),
+    domain          = 'catbert.net',
+    nodeName        = process.argv[2],
+    classifiers     = [
+      localClassifier,
+      ec2Classifier
+    ],
+    finalHandlers   = {
+      enc: encHandler,
+      autosign: autosignHandler,
+    };
+
+
+function log(message) {
+  fs.appendFileSync('/tmp/enc.log', (new Date()).toISOString() + ' ' + nodeName + ': ' + message + '\n');
+}
+
+function classify(req, res, cb) {
+  var i = 0;
+  
+  function next(err) {
+    if (err) {
+      cb(err, null);
+    } else {
+      if (i == classifiers.length) {
+        cb(null, res);
+      } else {
+        classifiers[i++].call(null, req, res, next);
+      }
+    }
+  }
+  
+  next();
+}
+
+function flatten(a) {
+  var b = [];
+  if (!(a instanceof Array)) {
+    b.push(a);
+  } else {
+    a.forEach(function (an) {
+      b = b.concat(flatten(an));
+    });
+  }
+  return b;
+}
+
+function autosignHandler (res) {
+  log((res.classes.length > 0 ? 'Ena' : 'Disa') + 'bling auto-sign for ' + nodeName);
+  process.exit(res.classes.length > 0 ? 0 : 1);
+}
+
+function encHandler (res) {
+  var classes = {},
+      output = { environment: res.environment || 'production' };
+
+  flatten(res.classes).forEach(function (c) {
+    Object.defineProperty(classes, c, {enumerable: true});
+  });
+  output.classes = Object.keys(classes).sort();
+  if (output.classes.length > 0) {
+    log('Returning classes for ' + nodeName + ': ' + output.classes.join(', '));
+    console.log('---\n' + yaml.safeDump(output));
+    process.exit(0);
+  } else {
+    log('Not returning classes for ' + nodeName);
+    process.exit(1);
+  }
+}
+
+if (process.argv.length !== 3) {
+  console.error('Expected node name as argument');
+  process.exit(1);
+}
+
+if (!finalHandlers[progName]) {
+  console.error('Called with unexpected name: ' + progName);
+  process.exit(1);
+}
+
+
+log('Starting classification');
+
+classify(
+  { node: nodeName, domain: domain },
+  { environment: 'production', classes: [] },
+  function (err, res) {
+    if (err) {
+      console.error(err);
+      log('Classification failed: ', err);
+      process.exit(1);
+    } else {
+      log('Finished classification');
+
+      // already validated handler above
+      finalHandlers[progName].call(null, res);
+    }
+  }
+);
+
+
