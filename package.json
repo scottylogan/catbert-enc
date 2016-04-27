@@ -1,6 +1,6 @@
 {
   "name": "enc",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Puppet ENC",
   "author": {
     "name": "Scotty Logan",
@@ -10,7 +10,7 @@
   "license": "MIT",
   "repository": "scottylogan/catbert-enc",
   "main": "lib/index.js",
-  "binary": {
+  "bin": {
     "enc": "./bin/enc",
     "autosign": "./bin/enc"
   },
