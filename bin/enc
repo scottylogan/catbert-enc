@@ -5,35 +5,36 @@ var yaml            = require('js-yaml'),
     progName        = process.argv[1].replace(/^.*\//, ''),
     nodeName        = process.argv[2],
     finalHandlers   = {
-      enc: encHandler,
+      enc:      encHandler,
       autosign: autosignHandler,
     },
     configDir,
+    logDir,
+    logFile,
+    match,
     classify;
 
+// append messages to the log file
+// if consoleError is true the message is also
+// output with console.error
+function log(message, consoleError) {
+  var logMsg = ' ' + (nodeName ? nodeName : '<unknown>') + ': ' + message + '\n';
 
-function log(message) {
-  fs.appendFileSync('/tmp/enc.log', (new Date()).toISOString() + ' ' + nodeName + ': ' + message + '\n');
-}
-
-[ '/etc/enc', '/usr/local/etc/enc', './conf' ].forEach(function (dir) {
-  try {
-    if (!configDir && fs.statSync(dir).isDirectory()) {
-      configDir = dir;
-    }
-  } catch (e) {
-    // ignore
+  fs.appendFileSync(logFile, (new Date()).toISOString() + logMsg);
+  if (consoleError) {
+    console.error(progName + ':' + logMsg);
   }
-
-});
-
-try {
-  classify = require('enc')(progName, nodeName, configDir, log);
-} catch (e) {
-  classify = require('../lib/index')(progName, nodeName, configDir, log);
 }
 
-
+// autosign handler - determine if puppet should automatically sign a
+// CSR from a new node
+//
+//
+// if the node is known (the classifier found classes for the node)
+// exit normally with status 0, otherwise exit with a non-0 status
+// (by throwing an exception that is caught in the big try/catch
+// block below)
+//
 function autosignHandler (res) {
   if (res.classes.length === 0) {
     throw new Error('Refusing autosign');
@@ -41,41 +42,106 @@ function autosignHandler (res) {
   log('Allowing autosign');
 }
 
+//
+// ENC handler - find an environment, classes, and parameters for
+// a node
+//
+// if the classifier found classes for the node, write those classes
+// as a YAML array to stdout and exit with status 0, otherwise log an
+// error and exit with a non-0 status (by throwing an exception that
+// is caught in the big try/catch block below)
+//
 function encHandler (res) {
   if (res.classes.length === 0) {
-    throw new Error('Not returning classes for ' + nodeName);
+    throw new Error('Failed to find classes for ' + nodeName);
   }
-  log('Returning classes for ' + nodeName + ': ' + res.classes.join(', '));
+  log('Found classes: ' + res.classes.join(', '));
   console.log('---\n' + yaml.safeDump(res));
 }
 
+// find the configuration and log directories
+// puppetserver calls the ENC with CONFIG set to
+// /etc/puppetlabs/puppetserver/conf.d (by default)
+if (process.env.CONFIG) {
+  match = process.env.CONFIG.match(/^\/etc\/(puppet(labs)?)\//);
+  if (match) {
+    configDir = '/etc/' + match[1] + '/enc';
+    logDir    = '/var/log/' + match[1] + '/enc';
+    logFile   = logDir + '/' + (new Date()).toISOString().split(/T/)[0] + '.log';
+  }
+} else {
+  // assume running tests in source directory
+  configDir = './conf';
+  logDir    = '.';
+  logFile   = './enc.log';
+}
+
+// wrap up a bunch of sanity checks, plus the classification
+// in a try/catch block
 try {
+  // arvg should be [ path-to-node, path-to-this-file, nodename ]
   if (process.argv.length !== 3) {
     throw new Error('Expected node name as argument');
   }
 
+  // fail if called via a symlink we don't recognize
   if (!finalHandlers[progName]) {
-    throw new Error('Called with unexpected name: ' + progName);
+    throw new Error('Called with an unexpected name: ' + progName);
   }
 
+  // check that configDir points to a existing directory
+  if (!fs.statSync(configDir).isDirectory()) {
+    throw new Error('Expected ' + configDir + ' to be a directory');
+  }
+
+  // check that logDir points to a existing directory
+  if (!fs.statSync(logDir).isDirectory()) {
+    throw new Error('Expected ' + logDir + ' to be a directory');
+  }
+
+  // check that logFile points to a existing file, or to nothing
+  // (in which case the first log() call will create the file)
+  try {
+    if (!fs.statSync(logFile).isFile()) {
+      throw new Error('Expected ' + logFile + ' to be a file');
+    }
+  } catch (e) {
+    // statSync will throw an ENOENT error if logFile does not exist
+    // but that's not really an error
+    if (e.code !== 'ENOENT') {
+      throw(e);
+    }
+  }
+
+  // load the classifier
+  if (logDir === '.') {
+    // running in the source directory
+    classify = require('../lib/index')(progName, nodeName, configDir, log);
+  } else {
+    // running from wherever enc was installed
+    classify = require('enc')(progName, nodeName, configDir, log);
+  }
+
+  // run the classifier 
   classify(
-    { node: nodeName },
-    { environment: 'production', classes: [] },
+    { node: nodeName, log: log },
+    { environment: 'production' },
     function (err, res) {
       if (err) {
         throw new Error('Classification failed: ' + (typeof err === 'string' ? err : err.message));
       } else {
         log('Finished classification');
-  
-        // already validated handler above
+
+        // call the final handler to return status to puppet
         finalHandlers[progName].call(null, res);
       }
     }
   );
 
+
 } catch (e) {
-  console.error(e.message);
-  log(e.message);
+  // when things go wrong, puppet expects a non-0 exit code
+  log(e.message, true);
   process.exit(1);
 }
 
